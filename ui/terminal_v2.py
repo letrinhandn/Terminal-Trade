@@ -4,10 +4,13 @@ Supports multiple asset classes, data sources, and expandable features.
 """
 
 # Standard library imports
+import logging
 import sys
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # Third-party imports
 import pandas as pd
@@ -900,8 +903,8 @@ class TradingTerminalV2:
         results = []
         
         for symbol in params['symbols']:
-            print(f"\nProcessing {symbol}...")
-            
+            logger.info("Processing %s", symbol)
+
             try:
                 df = load_data(
                     symbol=symbol,
@@ -911,20 +914,18 @@ class TradingTerminalV2:
                 )
                 
                 if df is None or df.empty:
-                    print(f"  [ERROR] No data available")
+                    logger.warning("No data available for %s", symbol)
                     continue
-                
-                print(f"  Loaded {len(df)} bars")
-                
-                # Validate required columns
+
+                logger.info("Loaded %s bars for %s", len(df), symbol)
+
                 required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
                 missing_cols = [col for col in required_cols if col not in df.columns]
                 if missing_cols:
-                    print(f"  [ERROR] Missing required columns: {missing_cols}")
-                    print(f"  Available columns: {list(df.columns)}")
+                    logger.warning("Missing required columns %s for %s (available: %s)",
+                                   missing_cols, symbol, list(df.columns))
                     continue
-                
-                
+
                 # Run strategy and backtest
                 df = strategy.run(df)
                 
@@ -969,7 +970,7 @@ class TradingTerminalV2:
                 print("  " + "-" * 60)
                 
             except Exception as e:
-                print(f"  [ERROR] {str(e)}")
+                logger.error("Backtest error for %s: %s", symbol, e)
         
         # Ask for visualization
         if confirm_action("\nVisualize results?", default=True):
@@ -1008,11 +1009,11 @@ class TradingTerminalV2:
                     required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
                     missing_cols = [col for col in required_cols if col not in df.columns]
                     if missing_cols:
-                        print(f"[WARNING] Missing columns: {missing_cols}")
+                        logger.warning("Missing columns %s for %s", missing_cols, symbol)
                         continue
                     
-                    print(f"  {symbol}...", end=' ')
-                    
+                    logger.info("Running strategy on %s", symbol)
+
                     df = strategy.run(df)
                     engine = BacktestEngine(initial_capital=params['capital'])
                     backtest_results = engine.run(df)
@@ -1034,10 +1035,11 @@ class TradingTerminalV2:
                         'Profit Factor': metrics['profit_factor'],
                     })
                     
-                    print(f"Return: {metrics['total_return']:.2f}%, Sharpe: {metrics['sharpe_ratio']:.2f}")
-                    
+                    logger.info("%s Return: %.2f%%, Sharpe: %.2f",
+                               symbol, metrics['total_return'], metrics['sharpe_ratio'])
+
                 except Exception as e:
-                    print(f"[ERROR] {str(e)}")
+                    logger.error("Strategy comparison error for %s: %s", symbol, e)
             
             if strategy_results:
                 avg_metrics = {

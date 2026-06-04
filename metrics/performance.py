@@ -3,10 +3,13 @@ Performance Metrics - Comprehensive trading performance analysis
 Calculates key metrics: returns, Sharpe ratio, max drawdown, win rate, etc.
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Optional
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class PerformanceMetrics:
@@ -22,28 +25,13 @@ class PerformanceMetrics:
     """
     
     def __init__(self, risk_free_rate: float = 0.02):
-        """
-        Initialize performance metrics calculator.
-        
-        Args:
-            risk_free_rate: Annual risk-free rate (default 2%)
-        """
+        """Initialize with annualized risk-free rate."""
         self.risk_free_rate = risk_free_rate
     
-    def calculate_all_metrics(self, backtest_results: dict, 
+    def calculate_all_metrics(self, backtest_results: dict,
                               equity_curve: List[float],
                               trading_days: int = 252) -> Dict:
-        """
-        Calculate all performance metrics from backtest results.
-        
-        Args:
-            backtest_results: Dictionary from BacktestEngine
-            equity_curve: Equity curve as list of values
-            trading_days: Number of trading days per year (252 for stocks, 365 for crypto)
-            
-        Returns:
-            Dictionary with all performance metrics
-        """
+        """Calculate all performance metrics from backtest results."""
         trades = backtest_results.get('trades', [])
         
         metrics = {
@@ -81,18 +69,9 @@ class PerformanceMetrics:
         
         return metrics
     
-    def calculate_sharpe_ratio(self, equity_curve: List[float], 
+    def calculate_sharpe_ratio(self, equity_curve: List[float],
                                trading_days: int = 252) -> float:
-        """
-        Calculate Sharpe ratio (risk-adjusted return).
-        
-        Args:
-            equity_curve: List of equity values
-            trading_days: Trading days per year
-            
-        Returns:
-            Sharpe ratio
-        """
+        """Calculate Sharpe ratio (risk-adjusted return)."""
         if len(equity_curve) < 2:
             return 0.0
         
@@ -106,18 +85,9 @@ class PerformanceMetrics:
         
         return float(sharpe)
     
-    def calculate_sortino_ratio(self, equity_curve: List[float], 
+    def calculate_sortino_ratio(self, equity_curve: List[float],
                                 trading_days: int = 252) -> float:
-        """
-        Calculate Sortino ratio (focuses only on downside volatility).
-        
-        Args:
-            equity_curve: List of equity values
-            trading_days: Trading days per year
-            
-        Returns:
-            Sortino ratio
-        """
+        """Calculate Sortino ratio (focuses only on downside volatility)."""
         if len(equity_curve) < 2:
             return 0.0
         
@@ -133,16 +103,7 @@ class PerformanceMetrics:
         return float(sortino)
     
     def calculate_calmar_ratio(self, total_return: float, max_drawdown: float) -> float:
-        """
-        Calculate Calmar ratio (return / max drawdown).
-        
-        Args:
-            total_return: Total return percentage
-            max_drawdown: Maximum drawdown percentage
-            
-        Returns:
-            Calmar ratio
-        """
+        """Calculate Calmar ratio (return / max drawdown)."""
         if max_drawdown == 0:
             return 0.0
         
@@ -150,18 +111,7 @@ class PerformanceMetrics:
     
     def calculate_profit_factor(self, avg_win: float, avg_loss: float,
                                 num_wins: int, num_losses: int) -> float:
-        """
-        Calculate profit factor (gross profit / gross loss).
-        
-        Args:
-            avg_win: Average winning trade %
-            avg_loss: Average losing trade %
-            num_wins: Number of winning trades
-            num_losses: Number of losing trades
-            
-        Returns:
-            Profit factor
-        """
+        """Calculate profit factor (gross profit / gross loss)."""
         gross_profit = avg_win * num_wins
         gross_loss = abs(avg_loss * num_losses)
         
@@ -170,18 +120,9 @@ class PerformanceMetrics:
         
         return gross_profit / gross_loss
     
-    def calculate_volatility(self, equity_curve: List[float], 
+    def calculate_volatility(self, equity_curve: List[float],
                             trading_days: int = 252) -> float:
-        """
-        Calculate annualized volatility.
-        
-        Args:
-            equity_curve: List of equity values
-            trading_days: Trading days per year
-            
-        Returns:
-            Annualized volatility (%)
-        """
+        """Calculate annualized volatility (%)."""
         if len(equity_curve) < 2:
             return 0.0
         
@@ -192,16 +133,7 @@ class PerformanceMetrics:
     
     def calculate_downside_deviation(self, equity_curve: List[float],
                                      trading_days: int = 252) -> float:
-        """
-        Calculate downside deviation (only negative returns).
-        
-        Args:
-            equity_curve: List of equity values
-            trading_days: Trading days per year
-            
-        Returns:
-            Annualized downside deviation (%)
-        """
+        """Calculate annualized downside deviation (only negative returns, %)."""
         if len(equity_curve) < 2:
             return 0.0
         
@@ -239,15 +171,7 @@ class PerformanceMetrics:
         return sum(t.holding_period for t in trades) / len(trades)
     
     def format_metrics(self, metrics: Dict) -> str:
-        """
-        Format metrics as a readable string.
-        
-        Args:
-            metrics: Dictionary of metrics
-            
-        Returns:
-            Formatted string
-        """
+        """Format metrics as a readable string."""
         lines = [
             "╔══════════════════════════════════════════════════════════╗",
             "║           PERFORMANCE METRICS SUMMARY                    ║",

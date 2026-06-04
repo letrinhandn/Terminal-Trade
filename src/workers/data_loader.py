@@ -55,8 +55,8 @@ class DataLoader(QThread):
             
             # Get news
             try:
-                data['news'] = ticker.news[:5]
-            except:
+                data["news"] = ticker.news[:5]
+            except (AttributeError, TypeError):
                 data['news'] = []
             
             self.finished.emit(data)

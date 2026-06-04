@@ -2,7 +2,10 @@
 Overview Tab - Market Data, Company Info, Financials
 """
 
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTabWidget, 
     QGroupBox, QTextEdit, QSizePolicy
@@ -260,8 +263,8 @@ class OverviewTab(QWidget):
                 try:
                     self.loader.terminate()
                     self.loader.wait(100)  # Wait max 100ms
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug("Could not stop previous loader: %s", e)
             
             # Load data in background
             self.loader = DataLoader(symbol)
@@ -274,7 +277,7 @@ class OverviewTab(QWidget):
                 self.tradingview.set_symbol(symbol)
         except Exception as e:
             self.log_formatted(f"Error loading {symbol}: {str(e)}", "error")
-            print(f"[OverviewTab] Error in load_symbol: {e}")
+            logger.warning("Error in load_symbol for %s: %s", symbol, e)
     
     def on_data_loaded(self, data: dict):
         """Handle loaded data"""

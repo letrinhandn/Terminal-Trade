@@ -4,6 +4,7 @@ Displays candlestick charts and technical indicators
 OpenBB-inspired visualization
 """
 
+import logging
 import yfinance as yf
 import mplfinance as mpf
 import matplotlib.pyplot as plt
@@ -11,6 +12,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, List
 from rich.console import Console
+
+logger = logging.getLogger(__name__)
 
 
 class ChartDisplay:
@@ -158,8 +161,7 @@ class ChartDisplay:
                 plt.show()
             except Exception as e:
                 self.console.print(f"[red]Error plotting chart: {e}[/red]")
-                import traceback
-                traceback.print_exc()
+                logger.warning("Error plotting chart: %s", e, exc_info=True)
     
     def plot_with_indicators(self, symbol: str, period: str = '3mo'):
         """
@@ -308,17 +310,10 @@ class ChartDisplay:
         plt.show()
 
 
-# Example usage
+
 if __name__ == "__main__":
     chart = ChartDisplay()
-    
-    # Simple candlestick
     # chart.plot_candlestick('BTC-USD', period='1mo', interval='1d', indicators=['sma'])
-    
-    # Comprehensive chart with all indicators
     # chart.plot_with_indicators('AAPL', period='3mo')
-    
-    # Intraday chart
     # chart.plot_intraday('BTC-USD', interval='5m')
-    
-    print("Chart display module ready!")
+    logger.info("Chart display module ready")

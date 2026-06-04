@@ -3,10 +3,13 @@ PortfolioTab - Extracted from terminal_trade_desktop.py
 Full implementation for modular architecture
 """
 
+import logging
 import os
 import io
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
@@ -202,14 +205,13 @@ class PortfolioTab(QWidget):
         self.log("Adding new backtest...", "info")
         
         try:
-            # Import modules
             from data.data_loader import load_data
             from strategies.macd_strategy import MACDStrategy, RSIStrategy
             from strategies.macd_advanced import MACDAdvancedStrategy, MACDConservative, MACDAggressive
             from backtest.engine import BacktestEngine
             from metrics.performance import PerformanceMetrics
-            
-            # Get parameters
+            from config.settings import DEFAULT_COMMISSION
+
             symbol = self.symbol_input.text().strip().upper()
             start_date = self.start_date.text().strip()
             end_date = self.end_date.text().strip() or None
@@ -220,7 +222,6 @@ class PortfolioTab(QWidget):
                 self.log("Please enter symbol and start date", "error")
                 return
             
-            # Select strategy
             if strategy_name == "MACD Strategy":
                 strategy = MACDStrategy()
             elif strategy_name == "MACD Advanced":
@@ -234,7 +235,6 @@ class PortfolioTab(QWidget):
             else:
                 strategy = MACDStrategy()
             
-            # Load data
             self.log(f"Loading {symbol}...", "info")
             df = load_data(symbol, start_date, end_date, source='yahoo')
             
@@ -242,20 +242,17 @@ class PortfolioTab(QWidget):
                 self.log(f"No data for {symbol}", "error")
                 return
             
-            # Run backtest
             self.log(f"Running {strategy_name}...", "info")
             df = strategy.run(df)
-            engine = BacktestEngine(initial_capital=capital, commission=0.001)
+            engine = BacktestEngine(initial_capital=capital, commission=DEFAULT_COMMISSION)
             backtest_results = engine.run(df)
             
-            # Calculate metrics
             metrics_calc = PerformanceMetrics()
             metrics = metrics_calc.calculate_all_metrics(
                 backtest_results,
                 backtest_results['equity_curve']
             )
             
-            # Store results
             result = {
                 'strategy': strategy_name,
                 'symbol': symbol,
@@ -265,7 +262,6 @@ class PortfolioTab(QWidget):
             }
             self.backtests.append(result)
             
-            # Update UI
             self.update_comparison_table()
             self.update_statistics()
             

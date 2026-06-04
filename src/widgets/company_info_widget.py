@@ -1,6 +1,9 @@
 """Company Information Widget - Displays comprehensive company data"""
 
+import logging
 import requests
+
+logger = logging.getLogger(__name__)
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtGui import QPixmap, QColor
 from PyQt6.QtWidgets import (
@@ -746,7 +749,8 @@ class CompanyInfoWidget(QWidget):
                 pixmap = QPixmap()
                 pixmap.loadFromData(response.content)
                 self.logo_label.setPixmap(pixmap.scaled(100, 60, Qt.AspectRatioMode.KeepAspectRatio))
-            except:
+            except Exception as e:
+                logger.debug("Could not load company logo from %s: %s", logo_url, e)
                 self.logo_label.setText("No Logo")
         
         self.industry_label.setText(f"Industry: {profile.get('finnhubIndustry', '--')}")

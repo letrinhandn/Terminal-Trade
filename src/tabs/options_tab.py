@@ -3,12 +3,15 @@ OptionsTab - Extracted from terminal_trade_desktop.py
 Full implementation for modular architecture
 """
 
+import logging
 import os
 import io
 import math
 import traceback
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -31,6 +34,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from realtime.orchestrator import DataOrchestrator
 from realtime.clients.deribit_client import DeribitClient
+from config.settings import DEFAULT_RISK_FREE_RATE
 
 matplotlib.use('Agg')
 
@@ -40,10 +44,8 @@ class OptionsTab(QWidget):
     
     def __init__(self):
         super().__init__()
-        # Load API key
         self.api_key = os.getenv("COINDESK_API_KEY", "")
-        
-        # Data state
+
         self.current_data = None
         self.current_underlying = "BTC"
         self.current_mode = "live"  # live or historical
@@ -51,8 +53,7 @@ class OptionsTab(QWidget):
         self.current_row = 0  # For progressive loading
         self.is_fetching = False  # Fetch state flag
         self.collected_expiries = set()  # Collect expiries for filter
-        
-        # Initialize orchestrator
+
         self.orchestrator = DataOrchestrator(self.api_key)
         self.orchestrator.progress.connect(self.on_fetch_progress)
         self.orchestrator.finished.connect(self.on_fetch_finished)
@@ -1183,7 +1184,7 @@ class OptionsTab(QWidget):
                         try:
                             expiry_date = datetime.strptime(expiry, fmt)
                             break
-                        except:
+                        except Exception:
                             continue
                     
                     if not expiry_date:
@@ -1206,22 +1207,22 @@ class OptionsTab(QWidget):
                     error_label = QLabel(f"Not enough data (need at least 10 contracts, got {len(data)})")
                     error_label.setStyleSheet("color: #ffaa00; padding: 20px;")
                     error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    
+
                     while self.surface_container_layout.count():
                         item = self.surface_container_layout.takeAt(0)
                         if item.widget():
                             item.widget().deleteLater()
-                    
+
                     self.surface_container_layout.addWidget(error_label)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug("Surface container unavailable: %s", e)
                 return
             
             # Render 3D surface
             self.render_3d_surface_snapshot(data, title="Volatility Surface - Snapshot")
             
         except Exception as e:
-            print(f"Error generating surface: {e}")
+            logger.warning("Error generating surface: %s", e)
     
     def _generate_historical_surface(self):
         """Generate 3D surface from CoinDesk historical API"""
@@ -1333,7 +1334,7 @@ class OptionsTab(QWidget):
                         'days': float(row.get('days_to_expiry', 0)),
                         'iv': float(row.get('iv', 0)) * 100
                     })
-                except:
+                except Exception:
                     continue
             
             if len(data) < 10:
@@ -1355,7 +1356,7 @@ class OptionsTab(QWidget):
             self.render_3d_surface_snapshot(data, title=f"Historical Vol Surface ({start} to {end})")
             
         except Exception as e:
-            print(f"Error in historical surface generation: {e}")
+            logger.warning("Error in historical surface generation: %s", e)
     
     def on_historical_error(self, error_msg):
         """Handle historical fetch error"""
@@ -1392,42 +1393,41 @@ class OptionsTab(QWidget):
                     error_label = QLabel(f"Not enough valid data ({len(strikes)} points, need at least 4)")
                     error_label.setStyleSheet("color: #ffaa00; padding: 20px;")
                     error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    
+
                     while self.surface_container_layout.count():
                         item = self.surface_container_layout.takeAt(0)
                         if item.widget():
                             item.widget().deleteLater()
-                    
+
                     self.surface_container_layout.addWidget(error_label)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug("Surface container unavailable: %s", e)
                 return
-            
+
             # Create grid with reasonable resolution
             n_strikes = min(20, len(np.unique(strikes)))
             n_days = min(15, len(np.unique(days)))
             strike_range = np.linspace(strikes.min(), strikes.max(), n_strikes)
             days_range = np.linspace(days.min(), days.max(), n_days)
             strike_grid, days_grid = np.meshgrid(strike_range, days_range)
-            
-            # Interpolate IV values - use 'linear' for sparse data (more stable than 'cubic')
+
             try:
                 iv_grid = griddata(
-                    (strikes, days), 
-                    ivs, 
-                    (strike_grid, days_grid), 
+                    (strikes, days),
+                    ivs,
+                    (strike_grid, days_grid),
                     method='linear',
                     fill_value=np.nan
                 )
             except Exception as interp_err:
                 # Fallback to nearest neighbor if linear fails
                 iv_grid = griddata(
-                    (strikes, days), 
-                    ivs, 
-                    (strike_grid, days_grid), 
+                    (strikes, days),
+                    ivs,
+                    (strike_grid, days_grid),
                     method='nearest'
                 )
-            
+
             # Plot
             fig = Figure(figsize=(12, 8), facecolor='#0a0a0a')
             ax = fig.add_subplot(111, projection='3d')
@@ -1512,138 +1512,20 @@ class OptionsTab(QWidget):
             
             
         except Exception as e:
-            # Safely set error text if label still exists
             error_msg = f"Surface error: {str(e)[:100]}"
+            logger.warning(error_msg)
             try:
-                # Clear container and show error label
                 while self.surface_container_layout.count():
                     item = self.surface_container_layout.takeAt(0)
                     if item.widget():
                         item.widget().deleteLater()
-                
+
                 error_label = QLabel(error_msg)
                 error_label.setStyleSheet("color: #ff6666; padding: 20px;")
                 error_label.setWordWrap(True)
                 self.surface_container_layout.addWidget(error_label)
-            except:
-                pass
-        try:
-            matplotlib.use('Agg')
-            
-            # Extract coordinates
-            strikes = np.array([d['strike'] for d in data])
-            days = np.array([d['days'] for d in data])
-            ivs = np.array([d['iv'] for d in data])
-            
-            # Remove duplicates and invalid values
-            valid_mask = ~np.isnan(ivs) & ~np.isnan(strikes) & ~np.isnan(days)
-            strikes = strikes[valid_mask]
-            days = days[valid_mask]
-            ivs = ivs[valid_mask]
-            
-            if len(strikes) < 4:
-                self.surface_label.setText(f"Not enough valid data ({len(strikes)} points, need at least 4)")
-                return
-            
-            # Create grid with reasonable resolution
-            n_strikes = min(20, len(np.unique(strikes)))
-            n_days = min(15, len(np.unique(days)))
-            strike_range = np.linspace(strikes.min(), strikes.max(), n_strikes)
-            days_range = np.linspace(days.min(), days.max(), n_days)
-            strike_grid, days_grid = np.meshgrid(strike_range, days_range)
-            
-            # Interpolate IV values - use 'linear' for sparse data (more stable than 'cubic')
-            try:
-                iv_grid = griddata(
-                    (strikes, days), 
-                    ivs, 
-                    (strike_grid, days_grid), 
-                    method='linear',
-                    fill_value=np.nan
-                )
-            except Exception as interp_err:
-                # Fallback to nearest neighbor if linear fails
-                iv_grid = griddata(
-                    (strikes, days), 
-                    ivs, 
-                    (strike_grid, days_grid), 
-                    method='nearest'
-                )
-            
-            # Plot
-            fig = Figure(figsize=(10, 7), facecolor='#0a0a0a')
-            ax = fig.add_subplot(111, projection='3d')
-            ax.set_facecolor('#0a0a0a')
-            
-            # Plot surface with NaN handling
-            surf = ax.plot_surface(
-                strike_grid, 
-                days_grid, 
-                iv_grid,
-                cmap='plasma',
-                alpha=0.8,
-                edgecolor='k',
-                linewidth=0.2,
-                antialiased=True
-            )
-            
-            # Scatter original points
-            ax.scatter(strikes, days, ivs, c='cyan', marker='o', s=20, alpha=0.8, edgecolor='white', linewidth=0.5)
-            
-            ax.set_xlabel('Strike', color='white', fontsize=9)
-            ax.set_ylabel('Days to Expiry', color='white', fontsize=9)
-            ax.set_zlabel('IV (%)', color='white', fontsize=9)
-            ax.set_title(f'Volatility Surface - {len(strikes)} points', color='#ff6600', fontsize=11, fontweight='bold', pad=10)
-            
-            # Set tick colors
-            ax.tick_params(colors='white', labelsize=8)
-            ax.xaxis.pane.fill = False
-            ax.yaxis.pane.fill = False
-            ax.zaxis.pane.fill = False
-            ax.xaxis.pane.set_edgecolor('#333')
-            ax.yaxis.pane.set_edgecolor('#333')
-            ax.zaxis.pane.set_edgecolor('#333')
-            
-            # Colorbar
-            cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, pad=0.1)
-            cbar.set_label('IV (%)', color='white', fontsize=9)
-            cbar.ax.tick_params(colors='white', labelsize=8)
-            
-            # Render to canvas
-            canvas = FigureCanvasQTAgg(fig)
-            canvas.setMinimumSize(800, 600)
-            canvas.draw()
-            
-            # Clear old widgets from CONTAINER layout only (not main surface_layout)
-            while self.surface_container_layout.count():
-                item = self.surface_container_layout.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
-            
-            # Add new canvas to container
-            self.surface_container_layout.addWidget(canvas)
-            
-            # Force update
-            self.surface_container.update()
-            canvas.show()
-            
-            
-        except Exception as e:
-            # Safely set error text if label still exists
-            error_msg = f"Surface error: {str(e)[:100]}"
-            try:
-                # Clear container and show error label
-                while self.surface_container_layout.count():
-                    item = self.surface_container_layout.takeAt(0)
-                    if item.widget():
-                        item.widget().deleteLater()
-                
-                error_label = QLabel(error_msg)
-                error_label.setStyleSheet("color: #ff6666; padding: 20px;")
-                error_label.setWordWrap(True)
-                self.surface_container_layout.addWidget(error_label)
-            except:
-                pass
+            except Exception as e2:
+                logger.debug("Surface container unavailable while showing error: %s", e2)
     
     def populate_chain_table(self, df):
         """Populate options chain table progressively (avoid lag)"""
@@ -1725,21 +1607,19 @@ class OptionsTab(QWidget):
                         'type': opt_type,
                         'iv': iv
                     })
-                except:
+                except Exception:
                     continue
-            
+
             if not data:
                 self.smile_label.setText("No data available")
                 self.term_label.setText("No data available")
                 return
-            
-            # Render IV Smile (first expiry)
+
             self.render_iv_smile(data)
-            
-            # Render Term Structure (ATM)
             self.render_term_structure(data)
-            
+
         except Exception as e:
+            logger.warning("Vol analytics update failed: %s", e)
             self.smile_label.setText(f"Error: {str(e)}")
             self.term_label.setText(f"Error: {str(e)}")
     
@@ -1771,29 +1651,27 @@ class OptionsTab(QWidget):
                         'type': opt_type,
                         'iv': iv
                     })
-                except Exception as e:
+                except Exception:
                     continue
-            
+
             if not data:
                 try:
                     self.smile_label.setText("No data available - fetch options first")
                     self.term_label.setText("No data available - fetch options first")
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug("Labels unavailable: %s", e)
                 return
-            
-            # Render IV Smile
+
             self.render_iv_smile(data)
-            
-            # Render Term Structure
             self.render_term_structure(data)
-            
+
         except Exception as e:
+            logger.warning("Vol analytics update failed: %s", e)
             try:
                 self.smile_label.setText(f"Error: {str(e)}")
                 self.term_label.setText(f"Error: {str(e)}")
-            except:
-                pass
+            except Exception as e2:
+                logger.debug("Labels unavailable: %s", e2)
     
     def render_iv_smile(self, data):
         """Render IV Smile chart"""
@@ -1853,11 +1731,11 @@ class OptionsTab(QWidget):
             self.smile_layout.addWidget(canvas)
             
         except Exception as e:
-            # Safely set error text if label still exists
+            logger.warning("IV smile chart error: %s", e)
             try:
                 self.smile_label.setText(f"Chart error: {str(e)}")
-            except:
-                pass
+            except Exception as e2:
+                logger.debug("smile_label unavailable: %s", e2)
     
     def render_term_structure(self, data):
         """Render Term Structure (ATM IV over time)"""
@@ -1880,8 +1758,8 @@ class OptionsTab(QWidget):
             if not expiry_ivs:
                 try:
                     self.term_label.setText("No ATM data found")
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug("term_label unavailable: %s", e)
                 return
             
             # Convert expiries to days
@@ -1897,7 +1775,7 @@ class OptionsTab(QWidget):
                         try:
                             expiry_date = datetime.strptime(expiry_str, fmt)
                             break
-                        except:
+                        except Exception:
                             continue
                     
                     if not expiry_date:
@@ -1916,8 +1794,8 @@ class OptionsTab(QWidget):
                 try:
                     msg = f"No valid expiries found.\nChecked: {len(expiry_ivs)} dates\nFailed: {failed_dates[:3]}"
                     self.term_label.setText(msg)
-                except:
-                    pass
+                except Exception as e:
+                    logger.debug("term_label unavailable: %s", e)
                 return
             
             # Plot
@@ -1948,11 +1826,11 @@ class OptionsTab(QWidget):
             self.term_layout.addWidget(canvas)
             
         except Exception as e:
-            # Safely set error text if label still exists
+            logger.warning("Term structure chart error: %s", e)
             try:
                 self.term_label.setText(f"Chart error: {str(e)}")
-            except:
-                pass
+            except Exception as e2:
+                logger.debug("term_label unavailable: %s", e2)
     
     def refresh_data(self):
         """Clear all data and refetch from beginning"""
@@ -2000,7 +1878,7 @@ class OptionsTab(QWidget):
             K = float(self.pricer_strike_input.text())
             T = float(self.pricer_expiry_input.text()) / 365.0
             sigma = float(self.pricer_iv_input.text())
-            r = 0.05  # Risk-free rate
+            r = DEFAULT_RISK_FREE_RATE
             option_type = self.pricer_type_combo.currentText().lower()
             
             # Black-Scholes

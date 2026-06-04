@@ -3,12 +3,16 @@ Options Metrics - Greeks, Pricing, and Risk Analysis
 Implements Black-Scholes model and options-specific metrics
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import math
+from config.settings import DEFAULT_RISK_FREE_RATE
+
+logger = logging.getLogger(__name__)
 
 
 class OptionsMetrics:
@@ -22,31 +26,13 @@ class OptionsMetrics:
     - Risk metrics
     """
     
-    def __init__(self, risk_free_rate: float = 0.05):
-        """
-        Initialize options metrics calculator.
-        
-        Args:
-            risk_free_rate: Annual risk-free rate (default 5%)
-        """
+    def __init__(self, risk_free_rate: float = DEFAULT_RISK_FREE_RATE):
+        """Initialize options metrics calculator."""
         self.risk_free_rate = risk_free_rate
     
-    def black_scholes_price(self, S: float, K: float, T: float, r: float, 
+    def black_scholes_price(self, S: float, K: float, T: float, r: float,
                            sigma: float, option_type: str = 'call') -> float:
-        """
-        Calculate option price using Black-Scholes model.
-        
-        Args:
-            S: Current stock/underlying price
-            K: Strike price
-            T: Time to expiration (in years)
-            r: Risk-free rate
-            sigma: Volatility (annualized)
-            option_type: 'call' or 'put'
-            
-        Returns:
-            Option price
-        """
+        """Calculate option price using Black-Scholes model."""
         if T <= 0:
             # At expiration
             if option_type == 'call':
@@ -64,22 +50,9 @@ class OptionsMetrics:
         
         return price
     
-    def calculate_delta(self, S: float, K: float, T: float, r: float, 
+    def calculate_delta(self, S: float, K: float, T: float, r: float,
                        sigma: float, option_type: str = 'call') -> float:
-        """
-        Calculate Delta (rate of change of option price w.r.t. underlying price).
-        
-        Delta ranges:
-        - Call: 0 to 1
-        - Put: -1 to 0
-        
-        Args:
-            S, K, T, r, sigma: Black-Scholes parameters
-            option_type: 'call' or 'put'
-            
-        Returns:
-            Delta value
-        """
+        """Calculate Delta. Call range [0,1], Put range [-1,0]."""
         if T <= 0:
             if option_type == 'call':
                 return 1.0 if S > K else 0.0
@@ -95,20 +68,9 @@ class OptionsMetrics:
         
         return delta
     
-    def calculate_gamma(self, S: float, K: float, T: float, r: float, 
+    def calculate_gamma(self, S: float, K: float, T: float, r: float,
                        sigma: float) -> float:
-        """
-        Calculate Gamma (rate of change of delta w.r.t. underlying price).
-        
-        Gamma is same for calls and puts.
-        Highest at-the-money, decreases away from strike.
-        
-        Args:
-            S, K, T, r, sigma: Black-Scholes parameters
-            
-        Returns:
-            Gamma value
-        """
+        """Calculate Gamma (same for calls and puts; highest at-the-money)."""
         if T <= 0:
             return 0.0
         
@@ -117,21 +79,9 @@ class OptionsMetrics:
         
         return gamma
     
-    def calculate_theta(self, S: float, K: float, T: float, r: float, 
+    def calculate_theta(self, S: float, K: float, T: float, r: float,
                        sigma: float, option_type: str = 'call') -> float:
-        """
-        Calculate Theta (rate of change of option price w.r.t. time).
-        
-        Theta is usually negative (time decay).
-        Reported as daily decay (divide by 365).
-        
-        Args:
-            S, K, T, r, sigma: Black-Scholes parameters
-            option_type: 'call' or 'put'
-            
-        Returns:
-            Theta value (annual, divide by 365 for daily)
-        """
+        """Calculate daily Theta (time decay; usually negative)."""
         if T <= 0:
             return 0.0
         
@@ -149,20 +99,9 @@ class OptionsMetrics:
         
         return theta / 365  # Daily theta
     
-    def calculate_vega(self, S: float, K: float, T: float, r: float, 
+    def calculate_vega(self, S: float, K: float, T: float, r: float,
                       sigma: float) -> float:
-        """
-        Calculate Vega (rate of change of option price w.r.t. volatility).
-        
-        Vega is same for calls and puts.
-        Measures sensitivity to IV changes.
-        
-        Args:
-            S, K, T, r, sigma: Black-Scholes parameters
-            
-        Returns:
-            Vega value (per 1% change in volatility)
-        """
+        """Calculate Vega (same for calls and puts) per 1% change in volatility."""
         if T <= 0:
             return 0.0
         
@@ -171,18 +110,9 @@ class OptionsMetrics:
         
         return vega / 100  # Per 1% change in vol
     
-    def calculate_rho(self, S: float, K: float, T: float, r: float, 
+    def calculate_rho(self, S: float, K: float, T: float, r: float,
                      sigma: float, option_type: str = 'call') -> float:
-        """
-        Calculate Rho (rate of change of option price w.r.t. interest rate).
-        
-        Args:
-            S, K, T, r, sigma: Black-Scholes parameters
-            option_type: 'call' or 'put'
-            
-        Returns:
-            Rho value (per 1% change in interest rate)
-        """
+        """Calculate Rho per 1% change in interest rate."""
         if T <= 0:
             return 0.0
         
@@ -213,22 +143,10 @@ class OptionsMetrics:
             'rho': self.calculate_rho(S, K, T, r, sigma, option_type)
         }
     
-    def implied_volatility(self, market_price: float, S: float, K: float, 
+    def implied_volatility(self, market_price: float, S: float, K: float,
                           T: float, r: float, option_type: str = 'call',
                           tol: float = 0.0001, max_iterations: int = 100) -> Optional[float]:
-        """
-        Calculate implied volatility using Newton-Raphson method.
-        
-        Args:
-            market_price: Observed market price of option
-            S, K, T, r: Black-Scholes parameters
-            option_type: 'call' or 'put'
-            tol: Convergence tolerance
-            max_iterations: Maximum iterations
-            
-        Returns:
-            Implied volatility (annualized) or None if not converged
-        """
+        """Calculate implied volatility via Newton-Raphson; returns None if not converged."""
         if T <= 0:
             return None
         
@@ -256,17 +174,7 @@ class OptionsMetrics:
         return None  # Did not converge
     
     def calculate_moneyness(self, S: float, K: float) -> Tuple[str, float]:
-        """
-        Calculate option moneyness.
-        
-        Args:
-            S: Current underlying price
-            K: Strike price
-            
-        Returns:
-            (category, ratio) where category is 'ITM', 'ATM', or 'OTM'
-            ratio is S/K
-        """
+        """Return (category, S/K ratio) where category is 'ITM', 'ATM', or 'OTM'."""
         ratio = S / K
         
         if abs(ratio - 1.0) < 0.02:  # Within 2%
@@ -279,19 +187,7 @@ class OptionsMetrics:
         return category, ratio
     
     def calculate_portfolio_greeks(self, positions: List[Dict]) -> Dict[str, float]:
-        """
-        Calculate net Greeks for a portfolio of options.
-        
-        Args:
-            positions: List of dicts with keys:
-                - option_type: 'call' or 'put'
-                - S, K, T, r, sigma: BS parameters
-                - quantity: Number of contracts (positive for long, negative for short)
-                - contract_size: Number of shares per contract (default 1)
-            
-        Returns:
-            Dictionary with portfolio Greeks
-        """
+        """Calculate net Greeks for a portfolio of options positions."""
         total_delta = 0
         total_gamma = 0
         total_theta = 0
@@ -328,21 +224,9 @@ class OptionsMetrics:
             'delta_dollars': total_delta * positions[0]['S'] if positions else 0
         }
     
-    def calculate_profit_probability(self, S: float, K: float, T: float, 
+    def calculate_profit_probability(self, S: float, K: float, T: float,
                                     sigma: float, option_type: str = 'call') -> float:
-        """
-        Calculate probability of profit at expiration.
-        
-        Args:
-            S: Current price
-            K: Strike price (or breakeven price for strategies)
-            T: Time to expiration
-            sigma: Volatility
-            option_type: 'call' or 'put'
-            
-        Returns:
-            Probability (0 to 1)
-        """
+        """Calculate log-normal probability of profit at expiration (0 to 1)."""
         if T <= 0:
             if option_type == 'call':
                 return 1.0 if S > K else 0.0
@@ -359,36 +243,18 @@ class OptionsMetrics:
         
         return prob
     
-    def years_to_expiry(self, expiry_date: str, 
+    def years_to_expiry(self, expiry_date: str,
                        current_date: Optional[str] = None) -> float:
-        """
-        Calculate time to expiry in years.
-        
-        Args:
-            expiry_date: Expiration date (YYYY-MM-DD)
-            current_date: Current date (YYYY-MM-DD), default today
-            
-        Returns:
-            Time in years
-        """
+        """Calculate time to expiry in years from YYYY-MM-DD strings."""
         expiry = datetime.strptime(expiry_date, '%Y-%m-%d')
         current = datetime.strptime(current_date, '%Y-%m-%d') if current_date else datetime.now()
         
         days = (expiry - current).days
         return max(0, days / 365.0)
     
-    def format_greeks(self, greeks: Dict[str, float], 
+    def format_greeks(self, greeks: Dict[str, float],
                      include_price: bool = True) -> str:
-        """
-        Format Greeks for display.
-        
-        Args:
-            greeks: Dictionary from calculate_all_greeks()
-            include_price: Whether to include theoretical price
-            
-        Returns:
-            Formatted string
-        """
+        """Format Greeks dict as a human-readable string."""
         lines = []
         
         if include_price and 'price' in greeks:
@@ -419,19 +285,7 @@ class OptionsPortfolioMetrics:
     
     def calculate_var(self, positions: List[Dict], confidence: float = 0.95,
                      time_horizon: int = 1) -> Dict[str, float]:
-        """
-        Calculate Value at Risk (VaR) for options portfolio.
-        
-        Uses delta-normal method.
-        
-        Args:
-            positions: List of option positions
-            confidence: Confidence level (default 95%)
-            time_horizon: Time horizon in days
-            
-        Returns:
-            Dictionary with VaR metrics
-        """
+        """Calculate delta-normal VaR and CVaR for an options portfolio."""
         # Get portfolio Greeks
         greeks = self.options_calc.calculate_portfolio_greeks(positions)
         
@@ -459,19 +313,8 @@ class OptionsPortfolioMetrics:
             'portfolio_value': greeks['portfolio_value']
         }
     
-    def calculate_beta_weighted_delta(self, positions: List[Dict], 
+    def calculate_beta_weighted_delta(self, positions: List[Dict],
                                       portfolio_beta: float = 1.0) -> float:
-        """
-        Calculate beta-weighted delta for portfolio.
-        
-        Useful for hedging across different underlyings.
-        
-        Args:
-            positions: List of option positions
-            portfolio_beta: Beta of the portfolio relative to benchmark
-            
-        Returns:
-            Beta-weighted delta
-        """
+        """Calculate beta-weighted delta (useful for cross-underlying hedging)."""
         greeks = self.options_calc.calculate_portfolio_greeks(positions)
         return greeks['delta'] * portfolio_beta

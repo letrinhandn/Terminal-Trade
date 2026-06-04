@@ -193,7 +193,7 @@ class RSSNewsFetcher:
                     if hasattr(entry, 'published_parsed') and entry.published_parsed:
                         try:
                             published = datetime(*entry.published_parsed[:6])
-                        except:
+                        except (ValueError, OverflowError):
                             pass
                     
                     # Extract content

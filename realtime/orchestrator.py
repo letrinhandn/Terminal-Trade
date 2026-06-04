@@ -3,10 +3,13 @@ Data Orchestrator - Smart routing between Deribit, Coindesk, and Cache
 The brain that decides: cache vs API, live vs historical
 """
 
+import logging
 import pandas as pd
 from datetime import date, datetime, timedelta
 from typing import Tuple, Optional, List
 from PyQt6.QtCore import QObject, pyqtSignal
+
+logger = logging.getLogger(__name__)
 
 from .clients.deribit_client import DeribitClient
 from .clients.coindesk_client import CoindeskClient
@@ -31,20 +34,9 @@ class DataOrchestrator(QObject):
         self.cache = CacheManager()
         self.api_key = api_key
     
-    def get_chain(self, underlying: str, mode: str = "live", 
+    def get_chain(self, underlying: str, mode: str = "live",
                   force: bool = False, expiries: Optional[List[str]] = None) -> Tuple[pd.DataFrame, dict]:
-        """
-        Get options chain with intelligent routing
-        
-        Args:
-            underlying: BTC or ETH
-            mode: "live" or "historical"
-            force: Force API fetch (bypass cache)
-            expiries: Optional expiry filter
-            
-        Returns:
-            (DataFrame, provenance_info dict)
-        """
+        """Get options chain with intelligent routing (live=Deribit, historical=Coindesk+cache)."""
         provenance = {
             'source': '',
             'from_cache': False,
@@ -114,20 +106,11 @@ class DataOrchestrator(QObject):
         
         return self.get_surface(underlying, start, end, force)
     
-    def get_surface(self, underlying: str, start: date, end: date, 
+    def get_surface(self, underlying: str, start: date, end: date,
                     force: bool = False) -> Tuple[pd.DataFrame, dict]:
-        """
-        Get volatility surface data (historical)
-        Uses intelligent caching to minimize Coindesk API calls
-        
-        Args:
-            underlying: BTC or ETH
-            start: Start date
-            end: End date (must be in the past, not today or future)
-            force: Force API fetch
-            
-        Returns:
-            (DataFrame, provenance_info)
+        """Get historical vol surface, using cache to minimize Coindesk API calls.
+
+        end must be in the past (not today or future).
         """
         provenance = {
             'source': 'coindesk',
@@ -213,16 +196,7 @@ class DataOrchestrator(QObject):
             return pd.DataFrame(), provenance
     
     def get_contract_detail(self, symbol: str, days: int = 30) -> Tuple[pd.DataFrame, dict]:
-        """
-        Get detailed history for a single contract
-        
-        Args:
-            symbol: Contract symbol
-            days: Days of history
-            
-        Returns:
-            (DataFrame, provenance_info)
-        """
+        """Get detailed price history for a single Deribit contract."""
         provenance = {
             'source': 'deribit',
             'from_api': True,

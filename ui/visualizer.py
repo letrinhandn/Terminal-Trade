@@ -3,11 +3,14 @@ Visualization module for backtest results.
 Creates charts and plots for equity curves, drawdowns, and performance analysis.
 """
 
+import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # Set style
 plt.style.use('seaborn-v0_8-darkgrid')  # Use matplotlib built-in style
@@ -86,7 +89,7 @@ class BacktestVisualizer:
             initial_capital: Starting capital
         """
         if not trades:
-            print("No trades to visualize")
+            logger.debug("No trades to visualize")
             return None
         
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
@@ -148,7 +151,7 @@ class BacktestVisualizer:
             comparison_data: DataFrame with strategy comparison results
         """
         if comparison_data.empty:
-            print("No data to compare")
+            logger.debug("No data to compare")
             return None
         
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(14, 10))
@@ -574,7 +577,7 @@ class BacktestVisualizer:
         """Save plot to file"""
         if fig:
             fig.savefig(filename, dpi=300, bbox_inches='tight')
-            print(f"Plot saved to {filename}")
+            logger.info("Plot saved to %s", filename)
 
 
 def plot_backtest_results(backtest_results: dict, title: str = "Backtest Results"):

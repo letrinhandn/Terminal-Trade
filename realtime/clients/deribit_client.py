@@ -57,7 +57,7 @@ class DeribitClient:
                     # Parse expiry date
                     try:
                         expiry_dt = datetime.strptime(exp_str, "%d%b%y").date()
-                    except:
+                    except ValueError:
                         expiry_dt = None
                     
                     instruments.append({

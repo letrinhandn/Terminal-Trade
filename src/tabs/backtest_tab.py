@@ -3,11 +3,14 @@ BacktestTab - Extracted from terminal_trade_desktop.py
 Full implementation for modular architecture
 """
 
+import logging
 import os
 import io
 import traceback
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -604,9 +607,6 @@ class BacktestTab(QWidget):
         self.export_btn.setEnabled(False)
         
         try:
-            # Import required modules
-            
-            # Get parameters
             symbol = self.symbol_input.text().strip().upper()
             start_date = self.start_date.text().strip()
             end_date = self.end_date.text().strip() or None
@@ -630,7 +630,6 @@ class BacktestTab(QWidget):
                 self.run_btn.setEnabled(True)
                 return
             
-            # Select strategy
             strategy_name = self.strategy_combo.currentText()
             self.log(f"Strategy: {strategy_name}", "info")
             
@@ -647,7 +646,6 @@ class BacktestTab(QWidget):
             else:
                 strategy = MACDStrategy()
             
-            # Load data
             self.log(f"Loading data for {symbol}...", "info")
             df = load_data(symbol, start_date, end_date, source='yahoo')
             
@@ -667,22 +665,19 @@ class BacktestTab(QWidget):
             
             self.log(f"Loaded {len(df)} bars from {df.index[0].date()} to {df.index[-1].date()}", "success")
             
-            # Run strategy
             self.log("Calculating indicators...", "info")
             df = strategy.run(df)
-            
+
             # Verify signals were generated
             if 'Signal' in df.columns:
                 num_buy = (df['Signal'] == 1).sum()
                 num_sell = (df['Signal'] == -1).sum()
                 self.log(f"Generated {num_buy} BUY and {num_sell} SELL signals", "info")
             
-            # Run backtest
             self.log("Running backtest...", "info")
             engine = BacktestEngine(initial_capital=capital, commission=commission)
             backtest_results = engine.run(df)
-            
-            # Calculate metrics
+
             self.log("Calculating performance metrics...", "info")
             metrics_calc = PerformanceMetrics()
             metrics = metrics_calc.calculate_all_metrics(
@@ -690,7 +685,6 @@ class BacktestTab(QWidget):
                 backtest_results['equity_curve']
             )
             
-            # Store results
             self.backtest_results = {
                 'metrics': metrics,
                 'backtest': backtest_results,
@@ -699,7 +693,6 @@ class BacktestTab(QWidget):
                 'df': df
             }
             
-            # Display results
             self.display_results(metrics, backtest_results)
             
             self.log(f"Backtest completed successfully!", "success")
@@ -759,14 +752,12 @@ class BacktestTab(QWidget):
                         value_item.setForeground(QColor("#00ff00"))
                     elif val < 0:
                         value_item.setForeground(QColor("#ff0000"))
-                except:
+                except Exception:
                     pass
             
             self.results_table.setItem(i, 0, metric_item)
             self.results_table.setItem(i, 1, value_item)
         
-        # Don't resize - keep fixed widths
-        # Generate and display charts
         self.generate_charts(metrics, backtest_results)
     
     def generate_charts(self, metrics: dict, backtest_results: dict):
@@ -1501,13 +1492,9 @@ class RSICustomStrategy(BaseStrategy):
                 self.editor_log("No strategy class found in code", "error")
                 return
             
-            # Test instantiation
             strategy = strategy_class()
             self.editor_log(f"✓ Strategy instantiated: {strategy.name}", "success")
-            
-            # Quick data test
-            
-            # Generate fake data
+
             dates = pd.date_range('2023-01-01', periods=100)
             df = pd.DataFrame({
                 'Open': np.random.randn(100).cumsum() + 100,

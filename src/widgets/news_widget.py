@@ -2,12 +2,15 @@
 News Widget - Live RSS News Feed Display
 """
 
+import logging
 import webbrowser
 import threading
 import subprocess
 import sys
 import time
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 from PyQt6.QtWidgets import (
     QGroupBox, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QWidget, QScrollArea, QComboBox, QCheckBox,
@@ -153,7 +156,7 @@ class NewsItemWidget(QWidget):
                     subprocess.Popen(['open', url])
                 else:
                     subprocess.Popen(['xdg-open', url])
-            except:
+            except Exception:
                 import webbrowser
                 webbrowser.open(url)
         
@@ -175,7 +178,7 @@ class NewsItemWidget(QWidget):
                     text-decoration: underline;
                 }
             """)
-        except:
+        except Exception:
             pass
 
     @staticmethod
@@ -189,7 +192,7 @@ class NewsItemWidget(QWidget):
             # Widget already deleted in UI thread
             return
         except Exception as e:
-            print(f"[NewsItemWidget] _safe_restore error: {e}")
+            logger.debug("_safe_restore error: %s", e)
 
 
 class NewsWidget(QGroupBox):
@@ -226,13 +229,13 @@ class NewsWidget(QGroupBox):
             from src.services.rss_fetcher import RSSNewsFetcher
             
             self.rss_fetcher = RSSNewsFetcher(
-                news_config, 
+                news_config,
                 news_config.NEWS_SETTINGS,
                 on_new_articles_callback=self.on_new_articles_from_thread
             )
-            print(f"[NewsWidget] RSS Fetcher initialized")
+            logger.info("RSS Fetcher initialized")
         except Exception as e:
-            print(f"[NewsWidget] Failed to initialize RSS fetcher: {e}")
+            logger.warning("Failed to initialize RSS fetcher: %s", e)
             self.rss_fetcher = None
         
         # Single unified timer for displaying articles (1 per second)
@@ -413,30 +416,25 @@ class NewsWidget(QGroupBox):
     def start_news_service(self):
         """Start RSS fetching and display"""
         if not self.rss_fetcher:
-            print("[NewsWidget] No RSS fetcher")
+            logger.warning("No RSS fetcher available")
             self.update_status("No RSS fetcher", "#ff0000")
             return
-            
+
         try:
-            print("[NewsWidget] Starting news service...")
-            
-            # Start RSS fetcher (continuous background fetching)
+            logger.info("Starting news service")
             self.rss_fetcher.start_auto_fetch()
-            print("[NewsWidget] ✅ RSS auto-fetch started")
-            
-            # Start display timer (1 article per second)
+            logger.info("RSS auto-fetch started")
             self.display_timer.start(1000)
-            print("[NewsWidget] ✅ Display timer started (1 article/second)")
-            
-            self.update_status("🟢 LIVE", "#00ff00")
-            
+            logger.info("Display timer started (1 article/second)")
+            self.update_status("LIVE", "#00ff00")
+
         except Exception as e:
+            logger.error("Error starting news service: %s", e)
             self.update_status(f"Error: {str(e)}", "#ff0000")
-            print(f"[NewsWidget] Error starting: {e}")
     
     def stop_news_service(self):
         """Stop news service"""
-        print("[NewsWidget] Stopping news service...")
+        logger.info("Stopping news service")
         
         if self.rss_fetcher:
             self.rss_fetcher.stop_auto_fetch()
@@ -449,10 +447,10 @@ class NewsWidget(QGroupBox):
     def on_new_articles_from_thread(self, new_articles):
         """Callback from RSS fetcher thread - emit signal to main thread"""
         try:
-            print(f"[NewsWidget] 📰 {len(new_articles)} new articles from fetcher")
+            logger.debug("%d new articles from fetcher", len(new_articles))
             self.new_articles_signal.emit(new_articles)
         except Exception as e:
-            print(f"[NewsWidget] Thread callback error: {e}")
+            logger.warning("Thread callback error: %s", e)
     
     def add_articles_to_queue(self, new_articles):
         """Add new articles to display queue (main thread)"""
@@ -472,14 +470,14 @@ class NewsWidget(QGroupBox):
                         added_to_queue += 1
             
             if added_to_storage > 0:
-                # Reset waiting flag when new articles arrive
                 self._waiting_for_articles = False
-                print(f"[NewsWidget] ✅ Stored {added_to_storage} articles (total: {len(self.all_fetched_articles)}, queue: {len(self.article_queue)})")
-                self.update_status(f"📰 {added_to_storage} new", "#4CAF50")
-                QTimer.singleShot(2000, lambda: self.update_status("🟢 LIVE", "#00ff00"))
-            
+                logger.debug("Stored %d articles (total: %d, queue: %d)",
+                             added_to_storage, len(self.all_fetched_articles), len(self.article_queue))
+                self.update_status(f"{added_to_storage} new", "#4CAF50")
+                QTimer.singleShot(2000, lambda: self.update_status("LIVE", "#00ff00"))
+
         except Exception as e:
-            print(f"[NewsWidget] Error adding to queue: {e}")
+            logger.warning("Error adding articles to queue: %s", e)
     
     def display_next_article(self):
         """Display next article from queue (called every second)"""
@@ -501,16 +499,16 @@ class NewsWidget(QGroupBox):
                     if not self.article_queue:
                         current_time = time.time()
                         if current_time - self._last_cycle_time > 60:
-                            print("[NewsWidget] 🔄 Cycling through articles (queue exhausted)...")
+                            logger.debug("Cycling through articles (queue exhausted)")
                             self._last_cycle_time = current_time
-                        
+
                         self.displayed_guids.clear()
                         for article in self.all_fetched_articles:
                             if self._article_matches_filters(article):
                                 self.article_queue.append(article)
-                        
+
                         if self.article_queue:
-                            print(f"[NewsWidget] Refilled queue with {len(self.article_queue)} articles")
+                            logger.debug("Refilled queue with %d articles", len(self.article_queue))
                 
                 # If still no articles, set waiting flag to prevent repeated checks
                 if not self.article_queue:
@@ -545,10 +543,10 @@ class NewsWidget(QGroupBox):
             # Update stats
             self.update_stats_display()
             
-            print(f"[NewsWidget] ⚡ Displayed: {article.title[:40]}...")
-            
+            logger.debug("Displayed: %s...", article.title[:40])
+
         except Exception as e:
-            print(f"[NewsWidget] Display error: {e}")
+            logger.warning("Display error: %s", e)
     
     def _article_matches_filters(self, article):
         """Check if article matches current filters"""
@@ -605,7 +603,7 @@ class NewsWidget(QGroupBox):
             # Widget was already deleted by the UI thread — ignore
             return
         except Exception as e:
-            print(f"[NewsWidget] _safe_clear_style error: {e}")
+            logger.debug("_safe_clear_style error: %s", e)
     
     def refresh_news(self):
         """Manual refresh - not needed in continuous mode"""
@@ -622,7 +620,7 @@ class NewsWidget(QGroupBox):
     def on_category_changed(self, category: str):
         """Handle category filter change - filter from existing articles, don't re-fetch"""
         self.selected_category = category.lower() if category != "All" else "all"
-        print(f"[NewsWidget] Category filter: {self.selected_category}")
+        logger.debug("Category filter: %s", self.selected_category)
         
         # Re-filter from all fetched articles
         self._reapply_filters()
@@ -630,7 +628,7 @@ class NewsWidget(QGroupBox):
     def on_search_changed(self, text: str):
         """Handle search filter change - filter from existing articles, don't re-fetch"""
         self.current_filter = text.strip()
-        print(f"[NewsWidget] Search filter: '{self.current_filter}'")
+        logger.debug("Search filter: '%s'", self.current_filter)
         
         # Apply with slight delay to avoid re-filtering on every keystroke
         QTimer.singleShot(300, self._reapply_filters)
@@ -638,7 +636,7 @@ class NewsWidget(QGroupBox):
     def _reapply_filters(self):
         """Re-filter and redisplay from all fetched articles - INSTANT display"""
         try:
-            print(f"[NewsWidget] Re-filtering {len(self.all_fetched_articles)} articles...")
+            logger.debug("Re-filtering %d articles", len(self.all_fetched_articles))
             
             # Reset waiting flag when filters change
             self._waiting_for_articles = False
@@ -651,11 +649,11 @@ class NewsWidget(QGroupBox):
                 if self._article_matches_filters(article):
                     matching_articles.append(article)
             
-            print(f"[NewsWidget] ✅ {len(matching_articles)} articles match filters")
+            logger.debug("%d articles match filters", len(matching_articles))
             
             # Update status
             if matching_articles:
-                self.update_status(f"📋 {len(matching_articles)} articles", "#4CAF50")
+                self.update_status(f"{len(matching_articles)} articles", "#4CAF50")
             else:
                 self.update_status("No matches", "#ff9800")
             
@@ -682,10 +680,10 @@ class NewsWidget(QGroupBox):
             self.news_container.setUpdatesEnabled(True)
             self.update_stats_display()
             
-            print(f"[NewsWidget] ⚡ Instantly displayed {articles_to_show} articles")
-                
+            logger.debug("Instantly displayed %d articles", articles_to_show)
+
         except Exception as e:
-            print(f"[NewsWidget] Error reapplying filters: {e}")
+            logger.warning("Error reapplying filters: %s", e)
     
     def clear_news(self):
         """Clear all news items"""

@@ -3,6 +3,7 @@ Company Fundamentals Viewer
 Real-time company information display
 """
 
+import logging
 import yfinance as yf
 from rich.console import Console
 from rich.table import Table
@@ -10,6 +11,8 @@ from rich.panel import Panel
 from rich.columns import Columns
 from typing import Optional, Dict
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 class FundamentalsViewer:
@@ -21,12 +24,7 @@ class FundamentalsViewer:
         self.console = Console()
     
     def view_company_overview(self, symbol: str):
-        """
-        Display comprehensive company overview
-        
-        Args:
-            symbol: Stock ticker (e.g., 'AAPL', 'MSFT')
-        """
+        """Display comprehensive company overview for a stock ticker."""
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info
@@ -204,12 +202,7 @@ class FundamentalsViewer:
         self.console.print(table)
     
     def view_balance_sheet(self, symbol: str):
-        """
-        Display balance sheet
-        
-        Args:
-            symbol: Stock ticker
-        """
+        """Display balance sheet for a stock ticker."""
         try:
             ticker = yf.Ticker(symbol)
             bs = ticker.balance_sheet
@@ -274,12 +267,7 @@ class FundamentalsViewer:
             self.console.print(f"[red]Error fetching balance sheet: {e}[/red]")
     
     def view_income_statement(self, symbol: str):
-        """
-        Display income statement
-        
-        Args:
-            symbol: Stock ticker
-        """
+        """Display income statement for a stock ticker."""
         try:
             ticker = yf.Ticker(symbol)
             income = ticker.income_stmt
@@ -326,12 +314,7 @@ class FundamentalsViewer:
             self.console.print(f"[red]Error fetching income statement: {e}[/red]")
     
     def view_cash_flow(self, symbol: str):
-        """
-        Display cash flow statement
-        
-        Args:
-            symbol: Stock ticker
-        """
+        """Display cash flow statement for a stock ticker."""
         try:
             ticker = yf.Ticker(symbol)
             cf = ticker.cashflow

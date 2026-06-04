@@ -2,9 +2,12 @@
 Main Application Window - Professional Trading Terminal
 """
 
+import logging
 import sys
 import warnings
 import os
+
+logger = logging.getLogger(__name__)
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
@@ -454,7 +457,7 @@ class TradingApp(QMainWindow):
                 if keyword in main_tab_map:
                     self.tabs.setCurrentIndex(main_tab_map[keyword])
                     self.global_command_input.clear()
-                    print(f"[App] Navigated to main tab {main_tab_map[keyword]}")
+                    logger.debug("Navigated to main tab %s", main_tab_map[keyword])
                     return
                 
                 if keyword in overview_subtab_map:
@@ -515,10 +518,10 @@ class TradingApp(QMainWindow):
                     self.global_command_input.clear()
                     return
                 
-                print(f"[App] Unrecognized 2-word command: {cmd}")
+                logger.debug("Unrecognized 2-word command: %s", cmd)
                 self.global_command_input.clear()
                 return
-            
+
             if len(parts) == 3:
                 word1, word2, word3 = parts[0], parts[1], parts[2]
                 
@@ -541,17 +544,15 @@ class TradingApp(QMainWindow):
                     self.global_command_input.clear()
                     return
                 
-                print(f"[App] Unrecognized 3-word command: {cmd}")
+                logger.debug("Unrecognized 3-word command: %s", cmd)
                 self.global_command_input.clear()
                 return
-            
-            print(f"[App] Invalid command format (too many words): {cmd}")
+
+            logger.debug("Invalid command format (too many words): %s", cmd)
             self.global_command_input.clear()
             
         except Exception as e:
-            print(f"[App] Error executing command: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error executing command: %s", e, exc_info=True)
             self.global_command_input.clear()
     
     def navigate_to_subtab(self, tab_index: int, subtab_index: int):
@@ -566,13 +567,13 @@ class TradingApp(QMainWindow):
                     subtabs = getattr(tab_widget, attr_name)
                     if subtabs and subtab_index < subtabs.count():
                         subtabs.setCurrentIndex(subtab_index)
-                        print(f"[App] Navigated to tab {tab_index}, sub-tab {subtab_index}")
+                        logger.debug("Navigated to tab %s, sub-tab %s", tab_index, subtab_index)
                         return
-            
-            print(f"[App] Tab {tab_index} has no sub-tabs or invalid sub-tab index {subtab_index}")
+
+            logger.debug("Tab %s has no sub-tabs or invalid sub-tab index %s", tab_index, subtab_index)
             
         except Exception as e:
-            print(f"[App] Error navigating to sub-tab: {e}")
+            logger.warning("Error navigating to sub-tab: %s", e)
     
     def load_symbol_in_overview(self, symbol: str, subtab_index: int = 0):
         try:
@@ -582,16 +583,16 @@ class TradingApp(QMainWindow):
             
             if hasattr(overview_tab, 'sub_tabs'):
                 overview_tab.sub_tabs.setCurrentIndex(subtab_index)
-                print(f"[App] Switched to Overview sub-tab {subtab_index}")
-            
+                logger.debug("Switched to Overview sub-tab %s", subtab_index)
+
             if hasattr(overview_tab, 'sync_all_panels'):
                 overview_tab.sync_all_panels(symbol)
-                print(f"[App] Loading symbol {symbol} in Overview")
+                logger.debug("Loading symbol %s in Overview", symbol)
             else:
-                print(f"[App] Overview tab doesn't have sync_all_panels method")
+                logger.warning("Overview tab doesn't have sync_all_panels method")
                 
         except Exception as e:
-            print(f"[App] Error loading symbol in overview: {e}")
+            logger.warning("Error loading symbol in overview: %s", e)
             overview_tab = self.tabs.widget(0)
             if hasattr(overview_tab, 'log_formatted'):
                 overview_tab.log_formatted(f"Error loading {symbol}: {str(e)}", "error")
@@ -604,12 +605,12 @@ class TradingApp(QMainWindow):
             
             if hasattr(backtest_tab, 'symbol_input'):
                 backtest_tab.symbol_input.setText(symbol)
-                print(f"[App] Set symbol {symbol} in Backtest tab")
+                logger.debug("Set symbol %s in Backtest tab", symbol)
             else:
-                print(f"[App] Backtest tab doesn't have symbol_input")
+                logger.warning("Backtest tab doesn't have symbol_input")
                 
         except Exception as e:
-            print(f"[App] Error loading symbol in backtest: {e}")
+            logger.warning("Error loading symbol in backtest: %s", e)
     
     def load_symbol_in_options(self, symbol: str):
         try:
@@ -619,16 +620,16 @@ class TradingApp(QMainWindow):
             
             if hasattr(options_tab, 'underlying_input'):
                 options_tab.underlying_input.setText(symbol)
-                print(f"[App] Set symbol {symbol} in Options tab")
-                
+                logger.debug("Set symbol %s in Options tab", symbol)
+
                 if hasattr(options_tab, 'on_underlying_changed'):
                     QTimer.singleShot(100, options_tab.on_underlying_changed)
-                    print(f"[App] Triggered underlying change for {symbol}")
+                    logger.debug("Triggered underlying change for %s", symbol)
             else:
-                print(f"[App] Options tab doesn't have underlying_input")
+                logger.warning("Options tab doesn't have underlying_input")
                 
         except Exception as e:
-            print(f"[App] Error loading symbol in options: {e}")
+            logger.warning("Error loading symbol in options: %s", e)
     
     def load_symbol_in_portfolio(self, symbol: str):
         try:
@@ -638,12 +639,12 @@ class TradingApp(QMainWindow):
             
             if hasattr(portfolio_tab, 'symbol_input'):
                 portfolio_tab.symbol_input.setText(symbol)
-                print(f"[App] Set symbol {symbol} in Portfolio tab")
+                logger.debug("Set symbol %s in Portfolio tab", symbol)
             else:
-                print(f"[App] Portfolio tab doesn't have symbol_input")
+                logger.warning("Portfolio tab doesn't have symbol_input")
                 
         except Exception as e:
-            print(f"[App] Error loading symbol in portfolio: {e}")
+            logger.warning("Error loading symbol in portfolio: %s", e)
     
     def show_help(self):
         help_text = """
