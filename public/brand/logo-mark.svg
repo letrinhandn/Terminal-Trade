@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Terminal Trade">
+  <rect width="64" height="64" rx="12" fill="#050505"/>
+  <!-- Minimal T: crossbar + stem, single orange -->
+  <path fill="#ff7a1a" d="M16 18h32v6H35v22h-6V24H16z"/>
+</svg>

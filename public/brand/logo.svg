@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 64" role="img" aria-label="Terminal Trade">
+  <rect width="64" height="64" rx="12" fill="#050505"/>
+  <path fill="#ff7a1a" d="M16 18h32v6H35v22h-6V24H16z"/>
+  <text
+    x="80"
+    y="41"
+    fill="#f2f2f2"
+    font-family="ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="26"
+    font-weight="650"
+    letter-spacing="2.5"
+  >TERMINAL TRADE</text>
+</svg>

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Terminal Trade">
+  <defs>
+    <radialGradient id="bg" cx="20%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="#1a0c00"/>
+      <stop offset="100%" stop-color="#000"/>
+    </radialGradient>
+    <pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#ff7a1a" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <rect x="0" y="0" width="1200" height="4" fill="#ff7a1a"/>
+  <rect x="72" y="210" width="88" height="88" rx="18" fill="#050505"/>
+  <path fill="#ff7a1a" d="M94 232h44v10H126v36h-12v-36H94z"/>
+  <text
+    x="188"
+    y="258"
+    fill="#f2f2f2"
+    font-family="ui-sans-serif, system-ui, -apple-system, sans-serif"
+    font-size="52"
+    font-weight="650"
+    letter-spacing="2"
+  >TERMINAL TRADE</text>
+  <text
+    x="188"
+    y="300"
+    fill="#888"
+    font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+    font-size="22"
+  >Open-source market research terminal</text>
+  <text
+    x="72"
+    y="520"
+    fill="#666"
+    font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+    font-size="18"
+  >Yahoo / Deribit / FRED / GDELT / CoinGecko</text>
+  <text
+    x="72"
+    y="558"
+    fill="#ff7a1a"
+    font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+    font-size="16"
+  >MIT / Research only / Not investment advice</text>
+</svg>

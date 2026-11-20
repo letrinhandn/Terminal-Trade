@@ -1,0 +1,38 @@
+{
+  "name": "terminal-trade",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4726 -H ::",
+    "build": "next build",
+    "start": "next start -p 4726 -H ::",
+    "lint": "eslint",
+    "dev:default": "next dev"
+  },
+  "dependencies": {
+    "lightweight-charts": "^5.3.0",
+    "next": "16.4.6",
+    "plotly.js": "^4.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-plotly.js": "^4.1.0",
+    "rss-parser": "^3.13.0",
+    "yahoo-finance2": "^4.0.6",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "^20",
+    "@types/plotly.js": "^3.0.15",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/react-plotly.js": "^2.6.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "postcss": "^8.5.33",
+    "tailwindcss": "4.3.3",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "description": "Terminal Trade web app"
+}

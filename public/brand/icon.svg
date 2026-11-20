@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Terminal Trade">
+  <rect width="512" height="512" rx="96" fill="#050505"/>
+  <path fill="#ff7a1a" d="M128 144h256v48H296v176h-80V192H128z"/>
+</svg>

@@ -1,0 +1,48 @@
+import type { UniverseMember } from "@/lib/types";
+
+/** Liquid curated universe for Ideas screener (stocks, ETFs, crypto). */
+export const IDEAS_UNIVERSE: UniverseMember[] = [
+  // Mega / growth
+  { symbol: "AAPL", name: "Apple", kind: "stock" },
+  { symbol: "MSFT", name: "Microsoft", kind: "stock" },
+  { symbol: "NVDA", name: "NVIDIA", kind: "stock" },
+  { symbol: "GOOGL", name: "Alphabet", kind: "stock" },
+  { symbol: "AMZN", name: "Amazon", kind: "stock" },
+  { symbol: "META", name: "Meta", kind: "stock" },
+  { symbol: "TSLA", name: "Tesla", kind: "stock" },
+  { symbol: "AVGO", name: "Broadcom", kind: "stock" },
+  { symbol: "AMD", name: "AMD", kind: "stock" },
+  { symbol: "NFLX", name: "Netflix", kind: "stock" },
+  { symbol: "JPM", name: "JPMorgan", kind: "stock" },
+  { symbol: "V", name: "Visa", kind: "stock" },
+  { symbol: "MA", name: "Mastercard", kind: "stock" },
+  { symbol: "XOM", name: "Exxon", kind: "stock" },
+  { symbol: "UNH", name: "UnitedHealth", kind: "stock" },
+  { symbol: "LLY", name: "Eli Lilly", kind: "stock" },
+  { symbol: "COST", name: "Costco", kind: "stock" },
+  { symbol: "CRM", name: "Salesforce", kind: "stock" },
+  { symbol: "ORCL", name: "Oracle", kind: "stock" },
+  { symbol: "INTC", name: "Intel", kind: "stock" },
+  // ETFs
+  { symbol: "SPY", name: "S&P 500", kind: "etf" },
+  { symbol: "QQQ", name: "Nasdaq 100", kind: "etf" },
+  { symbol: "IWM", name: "Russell 2000", kind: "etf" },
+  { symbol: "DIA", name: "Dow Jones", kind: "etf" },
+  { symbol: "XLK", name: "Tech Select", kind: "etf" },
+  { symbol: "XLF", name: "Financials", kind: "etf" },
+  { symbol: "XLE", name: "Energy", kind: "etf" },
+  { symbol: "GLD", name: "Gold", kind: "etf" },
+  { symbol: "TLT", name: "Long Treasury", kind: "etf" },
+  { symbol: "ARKK", name: "ARK Innovation", kind: "etf" },
+  // Crypto (Yahoo -USD)
+  { symbol: "BTC", name: "Bitcoin", kind: "crypto" },
+  { symbol: "ETH", name: "Ethereum", kind: "crypto" },
+  { symbol: "SOL", name: "Solana", kind: "crypto" },
+  { symbol: "BNB", name: "BNB", kind: "crypto" },
+  { symbol: "XRP", name: "XRP", kind: "crypto" },
+  { symbol: "DOGE", name: "Dogecoin", kind: "crypto" },
+  { symbol: "AVAX", name: "Avalanche", kind: "crypto" },
+  { symbol: "LINK", name: "Chainlink", kind: "crypto" },
+  { symbol: "ADA", name: "Cardano", kind: "crypto" },
+  { symbol: "DOT", name: "Polkadot", kind: "crypto" },
+];
